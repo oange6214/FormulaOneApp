@@ -1,6 +1,8 @@
 
+using FormulaOneApp.Data;
 using FormulaOneApp.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FormulaOneApp.Controllers;
 
@@ -8,42 +10,24 @@ namespace FormulaOneApp.Controllers;
 [ApiController]
 public class TeamsController : ControllerBase
 {
-    // fake data
-    private static List<Team> teams = new List<Team>()
+    private static AppDbContext _context;
+
+    public TeamsController(AppDbContext context)
     {
-        new Team()
-        {
-            Country = "Germany",
-            Id = 1,
-            Name = "Mercedes AMG F1",
-            TeamPrinciple = "Toto Wolf"
-        },
-        new Team()
-        {
-            Country = "Italy",
-            Id = 2,
-            Name = "Ferrari",
-            TeamPrinciple = "Mattia Binotto"
-        },
-        new Team()
-        {
-            Country = "Swiss",
-            Id = 3,
-            Name = "Alpha Romeo",
-            TeamPrinciple = "Frédéric Vasseur"
-        },
-    };
+        _context = context;
+    }
 
     [HttpGet]
-    public IActionResult Get()
+    public async Task<IActionResult> Get()
     {
+        var teams = await _context.Teams.ToListAsync();
         return Ok(teams);    // return 200
     }
 
     [HttpGet("{id}")]
-    public IActionResult Get(int id)
+    public async Task<IActionResult> Get(int id)
     {
-        var team = teams.FirstOrDefault(x => x.Id == id);
+        var team = _context.Teams.FirstOrDefaultAsync(x => x.Id == id);
 
         if (team == null)
         {
@@ -54,17 +38,18 @@ public class TeamsController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Post(Team team)
+    public async Task<IActionResult> Post(Team team)
     {
-        teams.Add(team);
+        await _context.Teams.AddAsync(team);
+        await _context.SaveChangesAsync();
 
         return CreatedAtAction("Get", team.Id, team);   // return 201
     }
 
     [HttpPatch]
-    public IActionResult Patch(int id, string country)
+    public async Task<IActionResult> Patch(int id, string country)
     {
-        var team = teams.FirstOrDefault(x => x.Id == id);
+        var team = await _context.Teams.FirstOrDefaultAsync(x => x.Id == id);
 
         if (team == null)
         {
@@ -73,20 +58,23 @@ public class TeamsController : ControllerBase
 
         team.Country = country;
 
+        await _context.SaveChangesAsync();
+
         return NoContent(); // return 204
     }
 
     [HttpDelete]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        var team = teams.FirstOrDefault(x => x.Id == id);
+        var team = await _context.Teams.FirstOrDefaultAsync(x => x.Id == id);
 
         if (team == null)
         {
             return BadRequest("Invalid Id");
         }
 
-        teams.Remove(team);
+        _context.Teams.Remove(team);
+        await _context.SaveChangesAsync();
 
         return NoContent();
     }
